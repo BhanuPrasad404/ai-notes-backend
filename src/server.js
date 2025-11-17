@@ -21,7 +21,10 @@ const server = createServer(app); // Use http server instead of app.listen()
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: [
+      "https://ai-notes-app-ebon.vercel.app",
+      "http://localhost:3000"
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"]
   }
 });
@@ -98,14 +101,16 @@ app.get('/api/debug-swagger', (req, res) => {
   });
 });
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: [
+    "https://ai-notes-app-ebon.vercel.app",
+    "http://localhost:3000" // Keep for local development
+  ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Client-Data"]
 }));
 
 app.options("*", cors());
-
 // Basic routes
 app.get('/', (req, res) => {
   res.json({
