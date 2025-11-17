@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String                @id @default(cuid())
+  email               String                @unique
+  password            String?
+  name                String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  avatarUrl           String?
+  authProvider        String                @default("local")
+  resetPasswordExpiry DateTime?
+  resetPasswordToken  String?
+  sidebarTags         String[]              @default(["work", "personal", "ideas"])
+  googleId            String?               @unique
+  activities          Activity[]
+  fileAttachments     FileAttachment[]
+  notes               Note[]
+  projects            Project[]
+  reactions           Reaction[]
+  sharedNotes         SharedNote[]
+  sharedTasks         SharedTask[]
+  tasks               Task[]
+  taskComments        TaskComment[]
+  aiAssistant         AIAssistant?
+  userPreferences     UserNotePreferences[]
+}
+
+model Note {
+  id              String                @id @default(cuid())
+  title           String
+  content         String?
+  aiSummary       String?
+  aiTags          Json
+  contentType     String                @default("text")
+  userId          String
+  isPublic        Boolean               @default(false)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments     NoteAttachment[]
+  sharedNotes     SharedNote[]
+  userPreferences UserNotePreferences[]
+}
+
+model Task {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  deadline    DateTime?
+  status      String        @default("TODO")
+  userId      String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  projectId   String?
+  urgency     String        @default("MEDIUM")
+  sharedTasks SharedTask[]
+  project     Project?      @relation(fields: [projectId], references: [id])
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments    TaskComment[]
+}
+
+model UserNotePreferences {
+  id           String   @id @default(cuid())
+  userId       String
+  noteId       String
+  isFavorite   Boolean  @default(false)
+  personalTags String[]
+  note         Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, noteId])
+  @@map("user_note_preferences")
+}
+
+model SharedNote {
+  id               String   @id @default(cuid())
+  noteId           String
+  sharedWithUserId String
+  permission       String   @default("VIEW")
+  sharedAt         DateTime @default(now())
+  note             Note     @relation(fields: [noteId], references: [id])
+  sharedWith       User     @relation(fields: [sharedWithUserId], references: [id])
+}
+
+model SharedTask {
+  id               String   @id @default(cuid())
+  taskId           String
+  sharedWithUserId String
+  permission       String   @default("VIEW")
+  sharedAt         DateTime @default(now())
+  sharedWith       User     @relation(fields: [sharedWithUserId], references: [id])
+  task             Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, sharedWithUserId])
+}
+
+model TaskComment {
+  id                       String           @id @default(cuid())
+  content                  String
+  taskId                   String
+  userId                   String
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+  repliedToCommentId       String?
+  repliedToContent         String?
+  repliedToCreatedAt       DateTime?
+  repliedToUserEmail       String?
+  repliedToUserId          String?
+  repliedToUserName        String?
+  repliedToFileAttachments Json?
+  fileAttachments          FileAttachment[]
+  reactions                Reaction[]
+  task                     Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user                     User             @relation(fields: [userId], references: [id])
+
+  @@index([taskId, createdAt])
+}
+
+model Reaction {
+  id        String      @id @default(cuid())
+  emoji     String
+  commentId String
+  userId    String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  comment   TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId, emoji])
+}
+
+model FileAttachment {
+  id                 String       @id @default(cuid())
+  filename           String
+  fileUrl            String
+  fileSize           Int
+  fileType           String
+  commentId          String?
+  userId             String
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  cloudinaryPublicId String?
+  comment            TaskComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([commentId])
+  @@index([userId])
+}
+
+model TaskLastRead {
+  id         String   @id @default(cuid())
+  taskId     String
+  userId     String
+  lastReadAt DateTime
+
+  @@unique([taskId, userId])
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#3B82F6")
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@unique([userId, name])
+}
+
+model NoteAttachment {
+  id                 String   @id @default(cuid())
+  noteId             String
+  filename           String
+  fileUrl            String
+  fileSize           Int
+  fileType           String
+  createdAt          DateTime @default(now())
+  cloudinaryPublicId String?
+  note               Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([noteId])
+}
+
+model AIAssistant {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  messages  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_assistant")
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  actorId     String
+  actorName   String
+  targetType  String
+  targetId    String
+  targetTitle String
+  message     String
+  metadata    Json?
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}

@@ -1,0 +1,39 @@
+{
+  "name": "ai-notes-backend",
+  "version": "1.0.0",
+  "description": "Backend for AI Notes App",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@prisma/client": "^6.17.0",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.8.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-fileupload": "^1.5.2",
+    "express-rate-limit": "^8.1.0",
+    "express-validator": "^7.2.1",
+    "google-auth-library": "^10.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^3.3.2",
+    "nodemailer": "^7.0.10",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^13.0.0",
+    "winston": "^3.18.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "prisma": "^6.17.0"
+  }
+}
