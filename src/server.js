@@ -33,8 +33,17 @@ setIO(io);
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+
 app.use(express.json());
+app.use(cors({
+  origin: [
+    "https://ai-notes-app-ebon.vercel.app",
+    "http://localhost:3000" // Keep for local development
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Client-Data"]
+}));
 
 app.use(generalLimiter);
 
@@ -72,7 +81,8 @@ app.use('./', getTaskAnalytics)
 app.use('/api/ai', aiAssistantRoutes);
 app.use('/api/activities', activityRoutes);
 
-app.use(express.json());
+//app.use(express.json());
+
 app.use(express.urlencoded({ extended: true }));
 
 // Add file routes
@@ -100,15 +110,7 @@ app.get('/api/debug-swagger', (req, res) => {
     components: Object.keys(specs.components || {})
   });
 });
-app.use(cors({
-  origin: [
-    "https://ai-notes-app-ebon.vercel.app",
-    "http://localhost:3000" // Keep for local development
-  ],
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Client-Data"]
-}));
+
 
 app.options("*", cors());
 // Basic routes
