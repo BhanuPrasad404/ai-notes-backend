@@ -12,7 +12,7 @@ const sendEmail = async (to, subject, html) => {
       },
       body: JSON.stringify({
         personalizations: [{ to: [{ email: to }] }],
-        from: { email: 'gumidellibhanuprasad5648@gmail.com', name: 'TaskFlow' },
+        from: { email: 'bhanuprasadgummidelli@gmail.com', name: 'TaskFlow' },
         subject: subject,
         content: [{ type: 'text/html', value: html }]
       }),
