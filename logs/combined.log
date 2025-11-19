@@ -4982,3 +4982,5 @@
 {"level":"info","message":"Email send operation completed","service":"ai-notes-backend","success":true,"timestamp":"2025-11-19T11:14:05.602Z","userId":"cmgkd2quk0000uqrwipnpli96"}
 {"email":"bhanuprasadgummidelli@gmail.com","level":"info","message":"Password reset email sent successfully","service":"ai-notes-backend","timestamp":"2025-11-19T11:14:05.604Z","userId":"cmgkd2quk0000uqrwipnpli96"}
 {"environment":"development","level":"info","message":"Server started successfully","port":"5000","service":"ai-notes-backend","timestamp":"2025-11-19T11:30:41.766Z"}
+{"environment":"development","level":"info","message":"Server started successfully","port":"5000","service":"ai-notes-backend","timestamp":"2025-11-19T12:00:47.390Z"}
+{"environment":"development","level":"info","message":"Server started successfully","port":"5000","service":"ai-notes-backend","timestamp":"2025-11-19T12:06:01.291Z"}

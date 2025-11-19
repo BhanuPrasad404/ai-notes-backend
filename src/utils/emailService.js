@@ -12,6 +12,10 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (to, subject, html) => {
   try {
+    console.log('🔧 Attempting to send email to:', to);
+    console.log('🔧 SendGrid API Key exists:', !!process.env.SENDGRID_API_KEY);
+    console.log('🔧 SendGrid API Key length:', process.env.SENDGRID_API_KEY?.length);
+
     const result = await transporter.sendMail({
       from: '"TaskFlow" <gumidellibhanuprasad5648@gmail.com>',
       to: to,
@@ -19,19 +23,14 @@ const sendEmail = async (to, subject, html) => {
       html: html,
     });
     
-    logger.info('Email sent successfully', { 
-      to, 
-      messageId: result.messageId,
-      subject: subject
-    });
-    
+    console.log('✅ Email sent successfully:', result);
+    logger.info('Email sent successfully', { to });
     return { success: true, data: result };
     
   } catch (error) {
-    logger.error('Email sending failed', { 
-      error: error.message, 
-      to
-    });
+    console.log('❌ Email error:', error.message);
+    console.log('❌ Full error:', error);
+    logger.error('Email sending failed', { error: error.message, to });
     return { success: false, error: error.message };
   }
 };
