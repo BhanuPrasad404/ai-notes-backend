@@ -1,49 +1,41 @@
-const { Resend } = require('resend');
-const logger = require('./logger'); // Make sure this path is correct
+const nodemailer = require("nodemailer");
+const logger = require('./logger');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let transporter;
+
+if (process.env.NODE_ENV === "production") {
+  transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT || 587,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+} else {
+  transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+}
 
 const sendEmail = async (to, subject, html) => {
   try {
-    // Validation
-    if (!process.env.RESEND_API_KEY) {
-      logger.error('RESEND_API_KEY environment variable is missing');
-      return { success: false, error: 'Email service not configured' };
-    }
-
-    if (!to || !subject || !html) {
-      logger.warn('Missing required email parameters', { to, hasSubject: !!subject, hasHtml: !!html });
-      return { success: false, error: 'Missing required email parameters' };
-    }
-
-    logger.info('Attempting to send email', { to, subjectLength: subject.length });
-
-    const { data, error } = await resend.emails.send({
-      from: 'TaskFlow <onboarding@resend.dev>',
+    const result = await transporter.sendMail({
+      from: `"TaskFlow" <${process.env.SMTP_USER}>`,
       to: to,
       subject: subject,
       html: html,
     });
-
-    if (error) {
-      logger.error('Resend API error', { error: error.message, to });
-      return { success: false, error: error.message };
-    }
-
-    logger.info('Email sent successfully', {
-      to,
-      messageId: data.id,
-      subjectLength: subject.length
-    });
-
-    return { success: true, data };
-
+    
+    logger.info('Email sent successfully', { to, messageId: result.messageId });
+    return { success: true, data: result };
+    
   } catch (error) {
-    logger.error('Email service exception', {
-      error: error.message,
-      to,
-      stack: error.stack
-    });
+    logger.error('Email sending failed', { error: error.message, to });
     return { success: false, error: error.message };
   }
 };
