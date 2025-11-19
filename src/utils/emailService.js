@@ -1,41 +1,36 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require('resend');
 const logger = require('./logger');
 
-let transporter;
-
-if (process.env.NODE_ENV === "production") {
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT || 587,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-} else {
-  transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-}
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async (to, subject, html) => {
   try {
-    const result = await transporter.sendMail({
-      from: `"TaskFlow" <${process.env.SMTP_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: 'TaskFlow <onboarding@resend.dev>',
       to: to,
       subject: subject,
       html: html,
     });
+
+    if (error) {
+      logger.error('Resend API error', { error: error.message, to });
+      return { success: false, error: error.message };
+    }
+
+    logger.info('Email sent successfully', { 
+      to, 
+      messageId: data.id,
+      subject: subject
+    });
     
-    logger.info('Email sent successfully', { to, messageId: result.messageId });
-    return { success: true, data: result };
+    return { success: true, data };
     
   } catch (error) {
-    logger.error('Email sending failed', { error: error.message, to });
+    logger.error('Email service exception', { 
+      error: error.message, 
+      to,
+      stack: error.stack 
+    });
     return { success: false, error: error.message };
   }
 };
