@@ -1,36 +1,34 @@
-const nodemailer = require("nodemailer");
 const logger = require('./logger');
-
-const transporter = nodemailer.createTransport({
-  host: "smtp.sendgrid.net",
-  port: 587,
-  auth: {
-    user: "apikey",
-    pass: process.env.SENDGRID_API_KEY,
-  },
-});
 
 const sendEmail = async (to, subject, html) => {
   try {
-    console.log('🔧 Attempting to send email to:', to);
-    console.log('🔧 SendGrid API Key exists:', !!process.env.SENDGRID_API_KEY);
-    console.log('🔧 SendGrid API Key length:', process.env.SENDGRID_API_KEY?.length);
-
-    const result = await transporter.sendMail({
-      from: '"TaskFlow" <gumidellibhanuprasad5648@gmail.com>',
-      to: to,
-      subject: subject,
-      html: html,
-    });
+    console.log('🔧 Sending via SendGrid API to:', to);
     
-    console.log('✅ Email sent successfully:', result);
-    logger.info('Email sent successfully', { to });
-    return { success: true, data: result };
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: to }] }],
+        from: { email: 'gumidellibhanuprasad5648@gmail.com', name: 'TaskFlow' },
+        subject: subject,
+        content: [{ type: 'text/html', value: html }]
+      }),
+    });
+
+    if (response.ok) {
+      console.log('✅ Email sent via SendGrid API');
+      return { success: true };
+    } else {
+      const error = await response.text();
+      console.log('❌ SendGrid API error:', error);
+      return { success: false, error: error };
+    }
     
   } catch (error) {
     console.log('❌ Email error:', error.message);
-    console.log('❌ Full error:', error);
-    logger.error('Email sending failed', { error: error.message, to });
     return { success: false, error: error.message };
   }
 };
