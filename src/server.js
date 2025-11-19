@@ -17,7 +17,7 @@ const {
 
 const prisma = new PrismaClient();
 const app = express();
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 const server = createServer(app); // Use http server instead of app.listen()
 
