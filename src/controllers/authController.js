@@ -431,8 +431,8 @@ const forgotPassword = async (req, res) => {
 
     // Check email service configuration
     logger.debug('Checking email service configuration', {
-      hasResendApiKey: !!process.env.RESEND_API_KEY,
-      resendKeyLength: process.env.RESEND_API_KEY?.length
+      hasSendGridApiKey: !!process.env.SENDGRID_API_KEY,  
+      sendGridKeyLength: process.env.SENDGRID_API_KEY?.length
     });
 
     // Send email

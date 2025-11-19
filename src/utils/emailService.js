@@ -2,7 +2,7 @@ const logger = require('./logger');
 
 const sendEmail = async (to, subject, html) => {
   try {
-    console.log('🔧 Sending via SendGrid API to:', to);
+    logger.info('Attempting to send email', { to, subjectLength: subject.length });
     
     const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
@@ -19,16 +19,20 @@ const sendEmail = async (to, subject, html) => {
     });
 
     if (response.ok) {
-      console.log('✅ Email sent via SendGrid API');
+      logger.info('Email sent successfully', { to, subject });
       return { success: true };
     } else {
       const error = await response.text();
-      console.log('❌ SendGrid API error:', error);
+      logger.error('SendGrid API error', { error, to, subject });
       return { success: false, error: error };
     }
     
   } catch (error) {
-    console.log('❌ Email error:', error.message);
+    logger.error('Email service exception', { 
+      error: error.message, 
+      to,
+      stack: error.stack 
+    });
     return { success: false, error: error.message };
   }
 };
