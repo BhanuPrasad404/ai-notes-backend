@@ -4,6 +4,7 @@ const { validateSignup, validateLogin, handleValidationErrors } = require('../mi
 const authMiddleware = require('../middleware/authMiddleware')
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const logger = require('../utils/logger'); 
 
 const router = express.Router();
 
