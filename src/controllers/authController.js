@@ -339,12 +339,12 @@ const googleLogin = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-  console.log('🚨 FORGOT PASSWORD STARTED');
+  console.log(' FORGOT PASSWORD STARTED');
   console.log('SENDGRID_API_KEY exists:', !!process.env.SENDGRID_API_KEY);
 
   try {
     const { email } = req.body;
-    console.log('📧 Email received:', email);
+    console.log(' Email received:', email);
 
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
@@ -363,18 +363,18 @@ const forgotPassword = async (req, res) => {
     });
 
     if (!user) {
-      console.log('❌ User not found');
+      console.log(' User not found');
       return res.json({ message: "If an account exists, a reset email has been sent" });
     }
 
-    console.log('✅ User found:', user.id);
+    console.log('User found:', user.id);
 
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
     const expiryTime = new Date(Date.now() + 15 * 60 * 1000);
 
-    console.log('🔐 Token generated');
+    console.log('Token generated');
 
     // Save to database
     await prisma.user.update({
@@ -386,17 +386,17 @@ const forgotPassword = async (req, res) => {
     });
 
     const resetUrl = `https://ai-notes-app-ebon.vercel.app/reset-password?token=${resetToken}&email=${email}`;
-    console.log('🔗 Reset URL:', resetUrl);
+    console.log(' Reset URL:', resetUrl);
 
     // Send email
-    console.log('📨 Attempting to send email');
+    console.log('Attempting to send email');
     const emailResult = await sendEmail(
       user.email,
       "Reset Your Password - TaskFlow",
       `<div>Reset link: ${resetUrl}</div>`
     );
 
-    console.log('📧 Email result:', emailResult);
+    console.log(' Email result:', emailResult);
 
     if (emailResult.success) {
       return res.json({ message: "Password reset link sent to your email" });
@@ -405,8 +405,8 @@ const forgotPassword = async (req, res) => {
     }
 
   } catch (error) {
-    console.log('💥 ERROR:', error);
-    console.log('💥 STACK:', error.stack);
+    console.log(' ERROR:', error);
+    console.log(' STACK:', error.stack);
     return res.status(500).json({ error: "Something went wrong" });
   }
 };
