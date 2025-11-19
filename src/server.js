@@ -69,7 +69,7 @@ const getTaskAnalytics = require('./routes/getTaskAnalyticsRoutes.js')
 const aiAssistantRoutes = require('./routes/aiAssistantRoutes.js');
 const activityRoutes = require('./routes/activities.js')
 
-app.use('/api/auth',  authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/tasks', generalLimiter, tasksRoutes);
 app.use('/api/tasks', taskSharingRoutes);
