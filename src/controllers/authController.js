@@ -339,18 +339,21 @@ const googleLogin = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-  console.log('🚨 FORGOT PASSWORD STARTED');
-  console.log('SENDGRID_API_KEY exists:', !!process.env.SENDGRID_API_KEY);
+  logger.info('FORGOT_PASSWORD_CONTROLLER_CALLED', {
+    email: req.body?.email,
+    timestamp: new Date().toISOString()
+  });
 
   try {
     const { email } = req.body;
-    console.log('📧 Email received:', email);
 
     if (!email) {
+      logger.warn('Forgot password request missing email');
       return res.status(400).json({ error: "Email is required" });
     }
 
-    console.log('🔍 Searching for user:', email);
+    logger.debug('Searching for user in database', { email });
+
     const user = await prisma.user.findUnique({
       where: { email },
       select: {
@@ -363,18 +366,19 @@ const forgotPassword = async (req, res) => {
     });
 
     if (!user) {
-      console.log('❌ User not found');
+      logger.info('User not found for email', { email });
       return res.json({ message: "If an account exists, a reset email has been sent" });
     }
 
-    console.log('✅ User found:', user.id);
+    logger.info('User found for password reset', {
+      userId: user.id,
+      email: user.email
+    });
 
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
     const expiryTime = new Date(Date.now() + 15 * 60 * 1000);
-
-    console.log('🔐 Token generated');
 
     // Save to database
     await prisma.user.update({
@@ -386,27 +390,47 @@ const forgotPassword = async (req, res) => {
     });
 
     const resetUrl = `https://ai-notes-app-ebon.vercel.app/reset-password?token=${resetToken}&email=${email}`;
-    console.log('🔗 Reset URL:', resetUrl);
+
+    logger.debug('Reset token generated and saved', {
+      userId: user.id,
+      resetUrlPreview: resetUrl.substring(0, 50) + '...'
+    });
 
     // Send email
-    console.log('📨 Attempting to send email');
     const emailResult = await sendEmail(
       user.email,
       "Reset Your Password - TaskFlow",
-      `<div>Reset link: ${resetUrl}</div>`
+      `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Reset Your Password</h2>
+        <p>Hi <strong>${user.name || "there"}</strong>,</p>
+        <p>Click the link below to reset your password. This link will expire in 15 minutes.</p>
+        <a href="${resetUrl}" 
+          style="display:inline-block; background:#2563eb; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none;">
+          Reset Password →
+        </a>
+        <p>If you didn't request this, you can safely ignore this email.</p>
+      </div>
+      `
     );
 
-    console.log('📧 Email result:', emailResult);
+    logger.info('Email send operation completed', {
+      success: emailResult.success,
+      error: emailResult.error,
+      userId: user.id
+    });
 
     if (emailResult.success) {
       return res.json({ message: "Password reset link sent to your email" });
     } else {
-      return res.status(500).json({ error: "Failed to send email" });
+      return res.status(500).json({ error: "Failed to send email. Please try again." });
     }
 
   } catch (error) {
-    console.log('💥 ERROR:', error);
-    console.log('💥 STACK:', error.stack);
+    logger.error('Forgot password operation failed', error, {
+      email: req.body?.email,
+      timestamp: new Date().toISOString()
+    });
     return res.status(500).json({ error: "Something went wrong" });
   }
 };
