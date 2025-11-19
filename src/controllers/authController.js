@@ -339,12 +339,10 @@ const googleLogin = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-
-  
   try {
     const { email } = req.body;
 
-    logger.debug('Forgot password request', { email });
+    logger.info('Forgot password request received', { email });
 
     if (!email) {
       logger.warn('Forgot password request missing email');
@@ -361,7 +359,7 @@ const forgotPassword = async (req, res) => {
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
-    // Save hashed token & expiry in DB (15 min expiry)
+    // Save to database
     await prisma.user.update({
       where: { email },
       data: {
@@ -375,13 +373,17 @@ const forgotPassword = async (req, res) => {
       email: user.email
     });
 
-    // Reset link (update frontend URL later)
     const resetUrl = `https://ai-notes-app-ebon.vercel.app/reset-password?token=${resetToken}&email=${email}`;
 
+    logger.info('Attempting to send email', {
+      to: user.email,
+      resetUrl: resetUrl
+    });
 
-    await sendEmail(
+    // Send email with detailed logging
+    const emailResult = await sendEmail(
       user.email,
-      "🔐 Reset Your Password - TaskFlow",
+      "Reset Your Password - TaskFlow",
       `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
         <h2>Reset Your Password</h2>
@@ -392,12 +394,29 @@ const forgotPassword = async (req, res) => {
           Reset Password →
         </a>
         <p>If you didn't request this, you can safely ignore this email.</p>
-        <p style="color:#6b7280;font-size:12px;margin-top:20px;">© TaskFlow. All rights reserved.</p>
       </div>
       `
     );
 
-    logger.debug('Password reset email sent', { userId: user.id, email: user.email });
+    logger.info('Email send result', {
+      success: emailResult.success,
+      error: emailResult.error,
+      messageId: emailResult.data?.id
+    });
+
+    if (!emailResult.success) {
+      logger.error('Email sending failed', {
+        userId: user.id,
+        error: emailResult.error
+      });
+      return res.status(500).json({ error: "Failed to send email. Please try again." });
+    }
+
+    logger.info('Password reset email sent successfully', {
+      userId: user.id,
+      email: user.email,
+      messageId: emailResult.data.id
+    });
 
     return res.status(200).json({ message: "Password reset link sent to your email" });
 
@@ -408,7 +427,6 @@ const forgotPassword = async (req, res) => {
     res.status(500).json({ error: "Something went wrong" });
   }
 };
-
 const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
