@@ -368,9 +368,9 @@ const forgotPassword = async (req, res) => {
     });
 
     if (!user) {
-      logger.warn('User not found for forgot password request', { email });
-      // Return success for security
-      return res.json({ message: "If an account exists, a reset email has been sent" });
+      return res.json({
+        message: "If an account exists, a reset email has been sent"
+      });
     }
 
     logger.info('User found for password reset', {
@@ -431,7 +431,7 @@ const forgotPassword = async (req, res) => {
 
     // Check email service configuration
     logger.debug('Checking email service configuration', {
-      hasSendGridApiKey: !!process.env.SENDGRID_API_KEY,  
+      hasSendGridApiKey: !!process.env.SENDGRID_API_KEY,
       sendGridKeyLength: process.env.SENDGRID_API_KEY?.length
     });
 
