@@ -138,5 +138,67 @@ router.get('/me', authMiddleware, async (req, res) => {
     }
 });
 
+// Add these to your authRoutes.js for testing
+
+// Test email service directly
+router.post('/test-email-service', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        logger.info('Testing email service', {
+            testEmail: email,
+            hasResendKey: !!process.env.RESEND_API_KEY
+        });
+
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required for test' });
+        }
+
+        const emailResult = await sendEmail(
+            email,
+            'Test Email from AI Notes Backend',
+            `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Test Email</h2>
+        <p>If you receive this, the email service is working!</p>
+        <p>Timestamp: ${new Date().toISOString()}</p>
+      </div>
+      `
+        );
+
+        logger.info('Email test result', {
+            success: emailResult.success,
+            error: emailResult.error,
+            messageId: emailResult.data?.id
+        });
+
+        res.json({
+            success: emailResult.success,
+            error: emailResult.error,
+            messageId: emailResult.data?.id,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        logger.error('Email test failed', error, { email: req.body?.email });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Check environment configuration
+router.get('/debug-config', (req, res) => {
+    const config = {
+        hasResendApiKey: !!process.env.RESEND_API_KEY,
+        resendKeyLength: process.env.RESEND_API_KEY?.length,
+        nodeEnv: process.env.NODE_ENV,
+        backendUrl: process.env.BACKEND_URL,
+        timestamp: new Date().toISOString()
+    };
+
+    logger.info('Debug configuration check', config);
+
+    res.json(config);
+});
+
 
 module.exports = router;

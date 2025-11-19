@@ -339,48 +339,108 @@ const googleLogin = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
+  logger.info('FORGOT_PASSWORD_CONTROLLER_CALLED', {
+    requestBody: req.body,
+    timestamp: new Date().toISOString()
+  });
+
   try {
     const { email } = req.body;
 
-    logger.info('Forgot password request received', { email });
+    logger.debug('Processing forgot password request', { email });
 
     if (!email) {
       logger.warn('Forgot password request missing email');
       return res.status(400).json({ error: "Email is required" });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    logger.debug('Searching for user in database', { email });
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        resetPasswordToken: true,
+        resetPasswordExpiry: true
+      }
+    });
+
     if (!user) {
-      logger.warn('Forgot password - user not found', { email });
-      return res.status(404).json({ error: "No account found with that email" });
+      logger.warn('User not found for forgot password request', { email });
+      // Return success for security
+      return res.json({ message: "If an account exists, a reset email has been sent" });
     }
+
+    logger.info('User found for password reset', {
+      userId: user.id,
+      email: user.email,
+      currentResetToken: !!user.resetPasswordToken,
+      currentResetExpiry: user.resetPasswordExpiry
+    });
 
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    const expiryTime = new Date(Date.now() + 15 * 60 * 1000);
+
+    logger.debug('Reset token generated', {
+      tokenPreview: resetToken.substring(0, 10) + '...',
+      hashedTokenPreview: hashedToken.substring(0, 10) + '...',
+      expiryTime: expiryTime.toISOString()
+    });
 
     // Save to database
-    await prisma.user.update({
-      where: { email },
-      data: {
-        resetPasswordToken: hashedToken,
-        resetPasswordExpiry: new Date(Date.now() + 15 * 60 * 1000),
-      },
-    });
+    logger.debug('Updating user with reset token', { userId: user.id });
 
-    logger.info('Password reset token generated', {
-      userId: user.id,
-      email: user.email
-    });
+    try {
+      const updatedUser = await prisma.user.update({
+        where: { email },
+        data: {
+          resetPasswordToken: hashedToken,
+          resetPasswordExpiry: expiryTime,
+        },
+        select: {
+          id: true,
+          resetPasswordToken: true,
+          resetPasswordExpiry: true
+        }
+      });
+
+      logger.info('User reset token updated successfully', {
+        userId: updatedUser.id,
+        resetTokenSet: !!updatedUser.resetPasswordToken,
+        expirySet: !!updatedUser.resetPasswordExpiry
+      });
+
+    } catch (dbError) {
+      logger.error('Database update failed during password reset', dbError, {
+        userId: user.id,
+        email: user.email
+      });
+      throw dbError;
+    }
 
     const resetUrl = `https://ai-notes-app-ebon.vercel.app/reset-password?token=${resetToken}&email=${email}`;
 
-    logger.info('Attempting to send email', {
-      to: user.email,
-      resetUrl: resetUrl
+    logger.debug('Reset URL generated', {
+      resetUrlPreview: resetUrl.substring(0, 50) + '...',
+      email: user.email
     });
 
-    // Send email with detailed logging
+    // Check email service configuration
+    logger.debug('Checking email service configuration', {
+      hasResendApiKey: !!process.env.RESEND_API_KEY,
+      resendKeyLength: process.env.RESEND_API_KEY?.length
+    });
+
+    // Send email
+    logger.info('Attempting to send password reset email', {
+      to: user.email,
+      userId: user.id
+    });
+
     const emailResult = await sendEmail(
       user.email,
       "Reset Your Password - TaskFlow",
@@ -398,16 +458,19 @@ const forgotPassword = async (req, res) => {
       `
     );
 
-    logger.info('Email send result', {
+    logger.info('Email send operation completed', {
       success: emailResult.success,
       error: emailResult.error,
-      messageId: emailResult.data?.id
+      messageId: emailResult.data?.id,
+      userId: user.id
     });
 
     if (!emailResult.success) {
-      logger.error('Email sending failed', {
+      logger.error('Email sending failed in forgot password', {
         userId: user.id,
-        error: emailResult.error
+        error: emailResult.error,
+        // Log the reset URL for manual testing
+        manualResetUrl: resetUrl
       });
       return res.status(500).json({ error: "Failed to send email. Please try again." });
     }
@@ -422,7 +485,8 @@ const forgotPassword = async (req, res) => {
 
   } catch (error) {
     logger.error('Forgot password operation failed', error, {
-      email: req.body?.email
+      email: req.body?.email,
+      timestamp: new Date().toISOString()
     });
     res.status(500).json({ error: "Something went wrong" });
   }
