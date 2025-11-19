@@ -1,40 +1,50 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require('resend');
+const logger = require('./logger'); // Make sure this path is correct
 
-let transporter;
-
-// Different setup for development or production
-if (process.env.NODE_ENV === "production") {
-  // Use Mailgun, Brevo, or any SMTP in production
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT || 587,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-} else {
-  // Development setup using Gmail (App Password)
-  transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-}
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async (to, subject, html) => {
   try {
-    await transporter.sendMail({
-      from: `"TaskFlow" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
+    // Validation
+    if (!process.env.RESEND_API_KEY) {
+      logger.error('RESEND_API_KEY environment variable is missing');
+      return { success: false, error: 'Email service not configured' };
+    }
+
+    if (!to || !subject || !html) {
+      logger.warn('Missing required email parameters', { to, hasSubject: !!subject, hasHtml: !!html });
+      return { success: false, error: 'Missing required email parameters' };
+    }
+
+    logger.info('Attempting to send email', { to, subjectLength: subject.length });
+
+    const { data, error } = await resend.emails.send({
+      from: 'TaskFlow <onboarding@resend.dev>',
+      to: to,
+      subject: subject,
+      html: html,
     });
-    console.log(` Email sent successfully to ${to}`);
+
+    if (error) {
+      logger.error('Resend API error', { error: error.message, to });
+      return { success: false, error: error.message };
+    }
+
+    logger.info('Email sent successfully', {
+      to,
+      messageId: data.id,
+      subjectLength: subject.length
+    });
+
+    return { success: true, data };
+
   } catch (error) {
-    console.error(" Error sending email:", error.message);
+    logger.error('Email service exception', {
+      error: error.message,
+      to,
+      stack: error.stack
+    });
+    return { success: false, error: error.message };
   }
 };
 
