@@ -1,35 +1,36 @@
-const { Resend } = require('resend');
+const nodemailer = require("nodemailer");
 const logger = require('./logger');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransporter({
+  host: "smtp.sendgrid.net",
+  port: 587,
+  auth: {
+    user: "apikey",
+    pass: process.env.SENDGRID_API_KEY,
+  },
+});
 
 const sendEmail = async (to, subject, html) => {
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'TaskFlow <onboarding@resend.dev>',
+    const result = await transporter.sendMail({
+      from: '"TaskFlow" <gumidellibhanuprasad5648@gmail.com>',
       to: to,
       subject: subject,
       html: html,
     });
-
-    if (error) {
-      logger.error('Resend API error', { error: error.message, to });
-      return { success: false, error: error.message };
-    }
-
+    
     logger.info('Email sent successfully', { 
       to, 
-      messageId: data.id,
+      messageId: result.messageId,
       subject: subject
     });
     
-    return { success: true, data };
+    return { success: true, data: result };
     
   } catch (error) {
-    logger.error('Email service exception', { 
+    logger.error('Email sending failed', { 
       error: error.message, 
-      to,
-      stack: error.stack 
+      to
     });
     return { success: false, error: error.message };
   }
