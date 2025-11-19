@@ -80,7 +80,7 @@ const signup = async (req, res) => {
       <p>Hi <strong>${user.name}</strong>,</p>
       <p>We're thrilled to have you on board 🎉</p>
       <p>Your account has been successfully created. You can now start organizing your notes, managing tasks, and staying productive!</p>
-      <a href="http://localhost:3000/dashboard" 
+      <a href="https://ai-notes-app-ebon.vercel.app/dashboard" 
          style="display: inline-block; background-color: #2563eb; color: #fff; padding: 10px 18px; border-radius: 6px; text-decoration: none; font-weight: 600;">
         Go to Dashboard →
       </a>
@@ -153,7 +153,7 @@ const login = async (req, res) => {
       <h2 style="color: #2563eb;">Login Alert </h2>
       <p>Hi <strong>${user.name}</strong>,</p>
       <p>You've successfully logged in to your <strong>TaskFlow</strong> account.</p>
-      <p>If this wasn't you, please <a href="https://your-app-domain.com/reset-password" style="color:#2563eb; text-decoration:none;">reset your password</a> immediately.</p>
+      <p>If this wasn't you, please <a href="https://ai-notes-app-ebon.vercel.app/reset-password" style="color:#2563eb; text-decoration:none;">reset your password</a> immediately.</p>
       <hr style="margin-top: 20px; border: none; border-top: 1px solid #e5e7eb;" />
       <p style="font-size: 12px; color: #6b7280;">This email was sent automatically for your security.</p>
     </div>
@@ -287,7 +287,7 @@ const googleLogin = async (req, res) => {
             <h2 style="color: #34a853;">Welcome to TaskFlow 👋</h2>
             <p>Hi <strong>${user.name}</strong>,</p>
             <p>We're excited to have you on board! You've successfully signed up using your Google account.</p>
-            <a href="${process.env.FRONTEND_URL}/dashboard"
+            <a href="https://ai-notes-app-ebon.vercel.app/dashboard"
                style="display: inline-block; background-color: #2563eb; color: #fff; padding: 10px 18px; border-radius: 6px; text-decoration: none; font-weight: 600;">
               Go to Dashboard →
             </a>
@@ -307,7 +307,7 @@ const googleLogin = async (req, res) => {
             <h2 style="color: #34a853;">Google Login Alert </h2>
             <p>Hi <strong>${user.name}</strong>,</p>
             <p>You've successfully logged in using your Google account.</p>
-            <p>If this wasn't you, please <a href="${process.env.FRONTEND_URL}/reset-password" style="color:#2563eb; text-decoration:none;">secure your account</a> immediately.</p>
+            <p>If this wasn't you, please <a href="https://ai-notes-app-ebon.vercel.app/reset-password" style="color:#2563eb; text-decoration:none;">secure your account</a> immediately.</p>
             <hr style="margin-top: 20px; border: none; border-top: 1px solid #e5e7eb;" />
             <p style="font-size: 12px; color: #6b7280;">This is an automatic security notification from TaskFlow.</p>
           </div>
@@ -374,7 +374,7 @@ const forgotPassword = async (req, res) => {
     });
 
     // Reset link (update frontend URL later)
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}&email=${email}`;
+    const resetUrl = `https://ai-notes-app-ebon.vercel.app/reset-password?token=${resetToken}&email=${email}`;
 
 
     await sendEmail(
