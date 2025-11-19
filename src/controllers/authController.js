@@ -339,23 +339,18 @@ const googleLogin = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-  logger.info('FORGOT_PASSWORD_CONTROLLER_CALLED', {
-    requestBody: req.body,
-    timestamp: new Date().toISOString()
-  });
+  console.log('🚨 FORGOT PASSWORD STARTED');
+  console.log('SENDGRID_API_KEY exists:', !!process.env.SENDGRID_API_KEY);
 
   try {
     const { email } = req.body;
-
-    logger.debug('Processing forgot password request', { email });
+    console.log('📧 Email received:', email);
 
     if (!email) {
-      logger.warn('Forgot password request missing email');
       return res.status(400).json({ error: "Email is required" });
     }
 
-    logger.debug('Searching for user in database', { email });
-
+    console.log('🔍 Searching for user:', email);
     const user = await prisma.user.findUnique({
       where: { email },
       select: {
@@ -368,127 +363,51 @@ const forgotPassword = async (req, res) => {
     });
 
     if (!user) {
-      return res.json({
-        message: "If an account exists, a reset email has been sent"
-      });
+      console.log('❌ User not found');
+      return res.json({ message: "If an account exists, a reset email has been sent" });
     }
 
-    logger.info('User found for password reset', {
-      userId: user.id,
-      email: user.email,
-      currentResetToken: !!user.resetPasswordToken,
-      currentResetExpiry: user.resetPasswordExpiry
-    });
+    console.log('✅ User found:', user.id);
 
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
     const expiryTime = new Date(Date.now() + 15 * 60 * 1000);
 
-    logger.debug('Reset token generated', {
-      tokenPreview: resetToken.substring(0, 10) + '...',
-      hashedTokenPreview: hashedToken.substring(0, 10) + '...',
-      expiryTime: expiryTime.toISOString()
-    });
+    console.log('🔐 Token generated');
 
     // Save to database
-    logger.debug('Updating user with reset token', { userId: user.id });
-
-    try {
-      const updatedUser = await prisma.user.update({
-        where: { email },
-        data: {
-          resetPasswordToken: hashedToken,
-          resetPasswordExpiry: expiryTime,
-        },
-        select: {
-          id: true,
-          resetPasswordToken: true,
-          resetPasswordExpiry: true
-        }
-      });
-
-      logger.info('User reset token updated successfully', {
-        userId: updatedUser.id,
-        resetTokenSet: !!updatedUser.resetPasswordToken,
-        expirySet: !!updatedUser.resetPasswordExpiry
-      });
-
-    } catch (dbError) {
-      logger.error('Database update failed during password reset', dbError, {
-        userId: user.id,
-        email: user.email
-      });
-      throw dbError;
-    }
+    await prisma.user.update({
+      where: { email },
+      data: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpiry: expiryTime,
+      }
+    });
 
     const resetUrl = `https://ai-notes-app-ebon.vercel.app/reset-password?token=${resetToken}&email=${email}`;
-
-    logger.debug('Reset URL generated', {
-      resetUrlPreview: resetUrl.substring(0, 50) + '...',
-      email: user.email
-    });
-
-    // Check email service configuration
-    logger.debug('Checking email service configuration', {
-      hasSendGridApiKey: !!process.env.SENDGRID_API_KEY,
-      sendGridKeyLength: process.env.SENDGRID_API_KEY?.length
-    });
+    console.log('🔗 Reset URL:', resetUrl);
 
     // Send email
-    logger.info('Attempting to send password reset email', {
-      to: user.email,
-      userId: user.id
-    });
-
+    console.log('📨 Attempting to send email');
     const emailResult = await sendEmail(
       user.email,
       "Reset Your Password - TaskFlow",
-      `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>Reset Your Password</h2>
-        <p>Hi <strong>${user.name || "there"}</strong>,</p>
-        <p>Click the link below to reset your password. This link will expire in 15 minutes.</p>
-        <a href="${resetUrl}" 
-          style="display:inline-block; background:#2563eb; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none;">
-          Reset Password →
-        </a>
-        <p>If you didn't request this, you can safely ignore this email.</p>
-      </div>
-      `
+      `<div>Reset link: ${resetUrl}</div>`
     );
 
-    logger.info('Email send operation completed', {
-      success: emailResult.success,
-      error: emailResult.error,
-      messageId: emailResult.data?.id,
-      userId: user.id
-    });
+    console.log('📧 Email result:', emailResult);
 
-    if (!emailResult.success) {
-      logger.error('Email sending failed in forgot password', {
-        userId: user.id,
-        error: emailResult.error,
-        // Log the reset URL for manual testing
-        manualResetUrl: resetUrl
-      });
-      return res.status(500).json({ error: "Failed to send email. Please try again." });
+    if (emailResult.success) {
+      return res.json({ message: "Password reset link sent to your email" });
+    } else {
+      return res.status(500).json({ error: "Failed to send email" });
     }
 
-    logger.info('Password reset email sent successfully', {
-      userId: user.id,
-      email: user.email,
-      messageId: emailResult.data.id
-    });
-
-    return res.status(200).json({ message: "Password reset link sent to your email" });
-
   } catch (error) {
-    logger.error('Forgot password operation failed', error, {
-      email: req.body?.email,
-      timestamp: new Date().toISOString()
-    });
-    res.status(500).json({ error: "Something went wrong" });
+    console.log('💥 ERROR:', error);
+    console.log('💥 STACK:', error.stack);
+    return res.status(500).json({ error: "Something went wrong" });
   }
 };
 const resetPassword = async (req, res) => {
