@@ -69,7 +69,7 @@ const getTaskAnalytics = require('./routes/getTaskAnalyticsRoutes.js')
 const aiAssistantRoutes = require('./routes/aiAssistantRoutes.js');
 const activityRoutes = require('./routes/activities.js')
 
-app.use('/api/auth',  authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/tasks', generalLimiter, tasksRoutes);
 app.use('/api/tasks', taskSharingRoutes);
@@ -1229,7 +1229,9 @@ app.post('/api/ai-suggestions', async (req, res) => {
     const { tasks } = req.body;
     console.log('Processing AI suggestions for', tasks.length, 'tasks');
 
-    const apiKey = process.env.GEMINI_API_KEY;
+
+    const apiKey = process.env.GROQ_API_KEY;
+
     if (!apiKey) {
       console.log(' No API key in backend');
       return res.json({
@@ -1242,17 +1244,23 @@ app.post('/api/ai-suggestions', async (req, res) => {
 
     const prompt = createPrompt(tasks);
 
+    // REPLACE ENTIRE FETCH CALL:
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      'https://api.groq.com/openai/v1/chat/completions',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}` // Added Authorization header
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            maxOutputTokens: 2000,
-            temperature: 0.1,
-          }
+          model: 'llama-3.3-70b-versatile', // Added model
+          messages: [{ // Changed format to messages array
+            role: 'user',
+            content: prompt
+          }],
+          max_tokens: 2000, //  maxOutputTokens to max_tokens
+          temperature: 0.1,
         }),
       }
     );
@@ -1260,7 +1268,10 @@ app.post('/api/ai-suggestions', async (req, res) => {
     if (!response.ok) throw new Error('AI service error');
 
     const data = await response.json();
-    const aiText = data.candidates[0].content.parts[0].text;
+
+    // CHANGE THIS LINE (Groq format):
+    const aiText = data.choices[0].message.content; // data.candidates[0].content.parts[0].text
+
     const parsedData = parseAIResponse(aiText);
     const suggestions = formatAIData(parsedData, tasks);
 
