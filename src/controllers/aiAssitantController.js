@@ -30,16 +30,18 @@ const TRAINED_RESPONSES = {
 const callGemini = async (prompt, maxTokens = 200) => {
     try {
         const response = await fetch(
-            `${process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/models'}/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+            'https://api.groq.com/openai/v1/chat/completions',
             {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
                 },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: `You are an AI assistant for a specific productivity app. Answer questions ONLY about this app's features.
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [{
+                        role: 'user',
+                        content: `You are an AI assistant for a specific productivity app. Answer questions ONLY about this app's features.
 
 APP FEATURES:
 - Notes: Create, edit, share notes with AI tools (summarization, tagging, enhancement)
@@ -51,28 +53,24 @@ APP FEATURES:
 
 USER QUESTION: "${prompt}"
 
-Provide a concise answer focused ONLY on how to use THIS app's features. If the question is not about this app, say "I specialize in helping with this productivity app's features."
-`
-                        }]
+Provide a concise answer focused ONLY on how to use THIS app's features. If the question is not about this app, say "I specialize in helping with this productivity app's features."`
                     }],
-                    generationConfig: {
-                        maxOutputTokens: maxTokens,
-                        temperature: 0.3,
-                    }
+                    max_tokens: maxTokens,
+                    temperature: 0.3,
                 }),
             }
         );
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(`Gemini API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
+            throw new Error(`Groq API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
         }
 
         const data = await response.json();
-        return data.candidates[0].content.parts[0].text.trim();
+        return data.choices[0].message.content.trim();
 
     } catch (error) {
-        logger.error('Gemini API call failed', error, {
+        logger.error('Groq API call failed', error, {
             promptLength: prompt?.length,
             maxTokens
         });
