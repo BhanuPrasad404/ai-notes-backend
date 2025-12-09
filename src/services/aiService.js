@@ -1,50 +1,51 @@
 const fetch = globalThis.fetch || require('node-fetch');
 
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+//const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+//const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 
 const callGemini = async (prompt, maxTokens = 200) => {
   try {
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
     const response = await fetch(
-      `${GEMINI_BASE_URL}/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      'https://api.groq.com/openai/v1/chat/completions',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GROQ_API_KEY}`
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
+          model: 'llama-3.3-70b-versatile',
+          messages: [{
+            role: 'user',
+            content: prompt
           }],
-          generationConfig: {
-            maxOutputTokens: maxTokens,
-            temperature: 0.3,
-          }
+          max_tokens: maxTokens,
+          temperature: 0.3,
         }),
       }
     );
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(`Gemini API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
+      throw new Error(`Groq API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
 
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      throw new Error('Invalid response format from Gemini API');
+    // GROQ FORMAT: data.choices[0].message.content
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response format from Groq API');
     }
 
-    return data.candidates[0].content.parts[0].text.trim();
+    return data.choices[0].message.content.trim();
 
   } catch (error) {
-    console.error('Gemini API call error:', error);
-    throw new Error(`Gemini API request failed: ${error.message}`);
+    console.error('Groq API call error:', error);
+    throw new Error(`Groq API request failed: ${error.message}`);
   }
 };
 
@@ -62,7 +63,7 @@ const summarizeContent = async (content) => {
     return await callGemini(prompt, 300);
 
   } catch (error) {
-    console.error('Gemini Summarization error:', error);
+    console.error('Groq Summarization error:', error);
     throw new Error('Failed to generate summary using Gemini API.');
   }
 };
@@ -94,7 +95,7 @@ const suggestTags = async (content) => {
     }
 
   } catch (error) {
-    console.error('Gemini Tag suggestion error:', error);
+    console.error('Groq Tag suggestion error:', error);
     return [];
   }
 };
@@ -109,8 +110,8 @@ const enhanceContent = async (content) => {
     return await callGemini(prompt, 500);
 
   } catch (error) {
-    console.error('Gemini Content enhancement error:', error);
-    throw new Error('Failed to enhance content using Gemini API');
+    console.error('Groq Content enhancement error:', error);
+    throw new Error('Failed to enhance content using Groq API');
   }
 };
 
@@ -171,7 +172,7 @@ Each item should be a clear action item. Atleast try to provide the Actions item
     }
 
   } catch (error) {
-    console.error('Gemini Action extraction error:', error);
+    console.error('Groq Action extraction error:', error);
     return [];
   }
 };
@@ -186,15 +187,15 @@ const checkGeminiHealth = async () => {
 
     return {
       healthy: true,
-      provider: 'Gemini API',
-      model: 'gemini-2.0-flash',
+      provider: 'Groq API',
+      model: 'llama-3.3-70b-versatile',
       responseTime: 'fast ⚡'
     };
   } catch (error) {
     return {
       healthy: false,
       error: error.message,
-      provider: 'Gemini API'
+      provider: 'Groq API'
     };
   }
 };
